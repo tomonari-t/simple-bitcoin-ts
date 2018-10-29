@@ -3,7 +3,7 @@ import * as semver from 'semver'
 const PROTOCOL_NAME = 'simpleBitcoinProtocol'
 const VERSION = '0.1.0'
 
-enum MessageType {
+export enum MessageType {
   add,
   remove,
   coreList,
@@ -13,12 +13,12 @@ enum MessageType {
   removeEdge
 }
 
-enum ErrorType {
+export enum ErrorType {
   protocolUnmatch,
   versionUnmatch,
 }
 
-enum SuccessType {
+export enum SuccessType {
   withPayload,
   withoutPayload,
 }
@@ -36,7 +36,7 @@ interface IParsedMessage {
   reason: ErrorType | SuccessType
   msgType: MessageType
   myPort: number
-  payload?: any
+  payload: any | undefined
 }
 
 export default class MessageManager {

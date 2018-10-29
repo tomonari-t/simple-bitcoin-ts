@@ -1,4 +1,4 @@
-import { every, remove } from 'lodash'
+import { every, remove, xorWith, isEqual } from 'lodash'
 import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
 
@@ -22,30 +22,35 @@ class ConnectionManager {
 
   public joinNetwork() {}
 
-  public sendMsg({ host, port }: IPeer, msg) {
-    try {
-      const client = net.createConnection({ host, port })
-      client.write(msg)
-      client.end()
-    } catch (err) {
-      console.log(`Connection refused to ${host}:${port}`)
-      this.removePeer({ host, port })
-    }
-  }
-
-  public sendMsgToAllPeer(msg: string) {
-    console.log('sndMsgToAllPeer was called')
-    this.coreNode.forEach(node => {
-      if (node.host !== this.host && node.port !== this.port) {
-        console.log(`Send to ${node.host}:${node.port}`)
-        this.sendMsg({ host: node.host, port: node.port }, msg)
+  public sendMsg({ host, port }: IPeer, msg): Promise<void>{
+    return new Promise((resolve, reject) => {
+      try {
+        const client = net.createConnection({ host, port }, () => {
+          client.write(msg)
+          client.end()
+          resolve()
+        })
+      } catch (err) {
+        console.log(`Connection refused to ${host}:${port}`)
+        this.removePeer({ host, port })
+        reject()
       }
     })
   }
 
+  public async sendMsgToAllPeer(msg: string) {
+    console.log('sndMsgToAllPeer was called')
+    for (let node of this.coreNode) {
+      if (node.host !== this.host && node.port !== this.port) {
+        console.log(`Send to ${node.host}:${node.port}`)
+        await this.sendMsg({ host: node.host, port: node.port }, msg)
+      }
+    }
+  }
+
   public connectionClose() {}
 
-  private handleMsg(address: string, port: number, data: Buffer) {
+  private async handleMsg(address: string, port: number, data: Buffer) {
     const {result, reason, msgType, myPort, payload } = this.mm.parse(data.toString())
 
     if (result === 'error') {
@@ -64,19 +69,19 @@ class ConnectionManager {
           return
         } else {
           const message = this.mm.build(MessageType.coreList, this.port, [...this.coreNode])
-          this.sendMsgToAllPeer(message)
+          await this.sendMsgToAllPeer(message)
         }
       } else if (msgType === MessageType.remove) {
         console.log(`Remove request was receiver from ${address}:${port}`)
         this.removePeer({ host: address, port })
         const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode])
-        this.sendMsgToAllPeer(msg)
+        await this.sendMsgToAllPeer(msg)
       } else if (msgType === MessageType.ping) {
         return
       } else if (msgType === MessageType.coreList) {
         console.log('List for Core nodes was requested')
         const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode])
-        this.sendMsgToAllPeer(msg)
+        await this.sendMsgToAllPeer(msg)
       } else {
         console.log('Received unknown msgtype')
       }
@@ -112,7 +117,41 @@ class ConnectionManager {
     }
   }
 
-  private checkPeersConnection() {}
+  private async checkPeersConnection() {
+    console.log('Check peers connection was called')
+    let isChanged = false
+    const deadConnectNodes = []
+    for (let node of this.coreNode) {
+      if (!await this.isAlive(node)) {
+        deadConnectNodes.push(node)
+      }
+    }
+
+    if (deadConnectNodes.length !== 0) {
+      isChanged = true
+      console.log(`Removeing: ${deadConnectNodes}`)
+      this.coreNode = xorWith(this.coreNode, deadConnectNodes, isEqual)
+    }
+
+    console.log(`Current node list: ${this.coreNode}`)
+
+    if (isChanged) {
+      const msg = this.mm.build(MessageType.coreList, this.port, this.coreNode)
+      await this.sendMsgToAllPeer(msg)
+    }
+
+    setTimeout(this.checkPeersConnection, PING_INTERVAL)
+  }
+
+  private async isAlive({ host, port }: IPeer) {
+    try {
+      const msg = this.mm.build(MessageType.ping, this.port)
+      await this.sendMsg({ host, port }, msg)
+      return true
+    } catch(err) {
+      return false
+    }
+  }
 
   private waitForAccess() {
     this.socket = net.createServer((connection) => {

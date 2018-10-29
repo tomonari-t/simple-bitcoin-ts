@@ -28,4 +28,5 @@ class ServerCore {
   public getCurrentStatus() {
     return this.status
   }
+
 }
