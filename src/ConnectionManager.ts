@@ -1,23 +1,26 @@
 import { every, remove, xorWith, isEqual } from 'lodash'
 import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
+import CoreNodeList from './CoreNodeList';
 
 const PING_INTERVAL = 180000
 
-interface IPeer {
+export interface IPeer {
   host: string
   port: number
 }
 
-class ConnectionManager {
-  private coreNode: {host: string, port: number}[] = []
+export class ConnectionManager {
+  private coreNode: CoreNodeList
   private socket: net.Server
   private mm: MessageManager
   constructor(private host: string, private port: number) {
     console.log('Initializing Connection Manager')
-    this.addPeer({ host, port })
     this.mm = new MessageManager()
+    this.coreNode = new CoreNodeList()
+    this.addPeer({ host, port })
   }
+
   public start() {}
 
   public joinNetwork() {}
@@ -40,7 +43,7 @@ class ConnectionManager {
 
   public async sendMsgToAllPeer(msg: string) {
     console.log('sndMsgToAllPeer was called')
-    for (let node of this.coreNode) {
+    for (let node of this.coreNode.getList()) {
       if (node.host !== this.host && node.port !== this.port) {
         console.log(`Send to ${node.host}:${node.port}`)
         await this.sendMsg({ host: node.host, port: node.port }, msg)
@@ -68,19 +71,19 @@ class ConnectionManager {
         if (address === this.host && port === this.port) {
           return
         } else {
-          const message = this.mm.build(MessageType.coreList, this.port, [...this.coreNode])
+          const message = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
           await this.sendMsgToAllPeer(message)
         }
       } else if (msgType === MessageType.remove) {
         console.log(`Remove request was receiver from ${address}:${port}`)
         this.removePeer({ host: address, port })
-        const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode])
+        const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
         await this.sendMsgToAllPeer(msg)
       } else if (msgType === MessageType.ping) {
         return
       } else if (msgType === MessageType.coreList) {
         console.log('List for Core nodes was requested')
-        const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode])
+        const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
         await this.sendMsgToAllPeer(msg)
       } else {
         console.log('Received unknown msgtype')
@@ -100,28 +103,18 @@ class ConnectionManager {
 
   private addPeer(peer: IPeer) {
     console.log(`Adding peer: ${peer}`)
-    this.coreNode.push(peer)
+    this.coreNode.add(peer)
   }
 
   private removePeer(peer: IPeer) {
-    if (every(this.coreNode, peer)) {
-      console.log(`Removing peer: ${peer}`)
-      remove(this.coreNode, (node) => {
-        if (node.host === peer.host && node.port === peer.port) {
-          return true
-        } else {
-          return false
-        }
-      })
-      console.log(`Current Core List: ${this.coreNode}`)
-    }
+    this.coreNode.remove(peer)
   }
 
   private async checkPeersConnection() {
     console.log('Check peers connection was called')
     let isChanged = false
     const deadConnectNodes = []
-    for (let node of this.coreNode) {
+    for (let node of this.coreNode.getList()) {
       if (!await this.isAlive(node)) {
         deadConnectNodes.push(node)
       }
@@ -130,13 +123,14 @@ class ConnectionManager {
     if (deadConnectNodes.length !== 0) {
       isChanged = true
       console.log(`Removeing: ${deadConnectNodes}`)
-      this.coreNode = xorWith(this.coreNode, deadConnectNodes, isEqual)
+      const newList = xorWith(this.coreNode.getList(), deadConnectNodes, isEqual)
+      this.coreNode.overWrite(newList)
     }
 
-    console.log(`Current node list: ${this.coreNode}`)
+    console.log(`Current node list: ${this.coreNode.getList()}`)
 
     if (isChanged) {
-      const msg = this.mm.build(MessageType.coreList, this.port, this.coreNode)
+      const msg = this.mm.build(MessageType.coreList, this.port, this.coreNode.getList())
       await this.sendMsgToAllPeer(msg)
     }
 
