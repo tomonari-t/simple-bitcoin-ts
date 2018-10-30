@@ -14,6 +14,9 @@ export class ConnectionManager {
   private coreNode: CoreNodeList
   private socket: net.Server
   private mm: MessageManager
+  private connectedHost: string
+  private connectedPort: number
+  private pingTimerId: NodeJS.Timeout
   constructor(private host: string, private port: number) {
     console.log('Initializing Connection Manager')
     this.mm = new MessageManager()
@@ -23,10 +26,25 @@ export class ConnectionManager {
 
   public start() {
     this.waitForAccess()
-    setTimeout(this.checkPeersConnection, PING_INTERVAL)
+    this.pingTimerId = setTimeout(this.checkPeersConnection, PING_INTERVAL)
   }
 
-  public joinNetwork(host: string, port: number) {}
+  public async joinNetwork(host: string, port: number) {
+    this.connectedHost = host
+    this.connectedPort = port
+    await this.connnectToP2PNW(host, port)
+  }
+
+  private connnectToP2PNW(host: string, port: number) {
+    return new Promise((resolve, reject) => {
+      const client = net.createConnection({ host, port }, () => {
+        const msg = this.mm.build(MessageType.add, this.port)
+        client.write(msg)
+        client.end()
+        resolve()
+      })
+    })
+  }
 
   public sendMsg({ host, port }: IPeer, msg): Promise<void>{
     return new Promise((resolve, reject) => {
@@ -54,7 +72,12 @@ export class ConnectionManager {
     }
   }
 
-  public connectionClose() {}
+  public async connectionClose() {
+    this.socket.close()
+    clearTimeout(this.pingTimerId)
+    const msg = this.mm.build(MessageType.remove, this.port)
+    await this.sendMsg({ host: this.connectedHost, port: this.connectedPort },msg)
+  }
 
   private async handleMsg(address: string, port: number, data: Buffer) {
     const {result, reason, msgType, myPort, payload } = this.mm.parse(data.toString())
@@ -137,7 +160,7 @@ export class ConnectionManager {
       await this.sendMsgToAllPeer(msg)
     }
 
-    setTimeout(this.checkPeersConnection, PING_INTERVAL)
+    this.pingTimerId =setTimeout(this.checkPeersConnection, PING_INTERVAL)
   }
 
   private async isAlive({ host, port }: IPeer) {
