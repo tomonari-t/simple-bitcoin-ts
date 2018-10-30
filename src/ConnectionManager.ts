@@ -1,7 +1,7 @@
 import { every, remove, xorWith, isEqual } from 'lodash'
 import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
-import CoreNodeList from './CoreNodeList';
+import CoreNodeList from './CoreNodeList'
 
 const PING_INTERVAL = 180000
 
@@ -150,7 +150,7 @@ export class ConnectionManager {
       isChanged = true
       console.log(`Removeing: ${deadConnectNodes}`)
       const newList = xorWith(this.coreNode.getList(), deadConnectNodes, isEqual)
-      this.coreNode.overWrite(newList)
+      this.coreNode.overwrite(newList)
     }
 
     console.log(`Current node list: ${this.coreNode.getList()}`)
