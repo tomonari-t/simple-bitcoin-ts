@@ -21,9 +21,12 @@ export class ConnectionManager {
     this.addPeer({ host, port })
   }
 
-  public start() {}
+  public start() {
+    this.waitForAccess()
+    setTimeout(this.checkPeersConnection, PING_INTERVAL)
+  }
 
-  public joinNetwork() {}
+  public joinNetwork(host: string, port: number) {}
 
   public sendMsg({ host, port }: IPeer, msg): Promise<void>{
     return new Promise((resolve, reject) => {
