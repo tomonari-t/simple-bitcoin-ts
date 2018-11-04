@@ -80,7 +80,7 @@ export class ConnectionManager {
   }
 
   private async handleMsg(address: string, port: number, data: Buffer) {
-    const {result, reason, msgType, myPort, payload } = this.mm.parse(data.toString())
+    const { result, reason, msgType, myPort, payload } = this.mm.parse(data.toString())
 
     if (result === 'error') {
       if (reason === ErrorType.protocolUnmatch) {
