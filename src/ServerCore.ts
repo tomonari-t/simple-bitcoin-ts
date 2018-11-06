@@ -35,7 +35,7 @@ export default class ServerCore {
   }
 
   public joinNetwork() {
-    if (!this.coreNodeHost) {
+    if (this.coreNodeHost) {
       this.status = ServerStatus.conectedToNetwork
       this.cm.joinNetwork(this.coreNodeHost, this.coreNodePort)
     } else {

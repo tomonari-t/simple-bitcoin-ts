@@ -12,7 +12,7 @@ const main = async () => {
   await myP2PServer.init()
   myP2PServer.start()
   myP2PServer.joinNetwork()
-  //catches ctrl+c event
+
   process.on('SIGINT', shutdown)
 }
 

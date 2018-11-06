@@ -1,4 +1,5 @@
 import * as semver from 'semver'
+import * as util from 'util'
 
 const PROTOCOL_NAME = 'simpleBitcoinProtocol'
 const VERSION = '0.1.0'

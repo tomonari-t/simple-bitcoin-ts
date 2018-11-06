@@ -74,7 +74,7 @@ export class ConnectionManager {
 
   public async connectionClose() {
     this.socket.close()
-    console.log('====')
+    console.log('=============================================')
     clearTimeout(this.pingTimerId)
     const msg = this.mm.build(MessageType.remove, this.port)
     await this.sendMsg({ host: this.connectedHost, port: this.connectedPort },msg)
@@ -91,7 +91,8 @@ export class ConnectionManager {
         console.log('Protocol version is not matched')
         return
       }
-    } else if (result === 'ok' && reason === SuccessType.withPayload) {
+    } else if (result === 'ok' && reason === SuccessType.withoutPayload) {
+      console.log(msgType)
       if (msgType === MessageType.add) {
         console.log('Add node request received!')
         this.addPeer({ host: address, port })
@@ -115,7 +116,7 @@ export class ConnectionManager {
       } else {
         console.log('Received unknown msgtype')
       }
-    } else if (result === 'ok' && reason === SuccessType.withoutPayload) {
+    } else if (result === 'ok' && reason === SuccessType.withPayload) {
       if (msgType === MessageType.coreList) {
         console.log('Refresh core node list')
         console.log(`latest core list ${payload}`)
