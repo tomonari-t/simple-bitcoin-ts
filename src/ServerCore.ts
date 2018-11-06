@@ -1,5 +1,6 @@
 import { ConnectionManager } from "./ConnectionManager"
 import * as net from 'net'
+import * as publicIp from 'public-ip'
 
 enum ServerStatus {
   init,
@@ -8,19 +9,23 @@ enum ServerStatus {
   shuttingDown,
 }
 
-class ServerCore {
+export default class ServerCore {
   private status: ServerStatus
   private cm: ConnectionManager
   private myIp: string
-  private
-  constructor(
+  constructor (
     private myPort: number,
-    private coreNodeHost: string,
-    private coreNodePort: number,
+    private coreNodeHost?: string,
+    private coreNodePort?: number,
   ) {
     this.status = ServerStatus.init
+  }
+
+  public async init() {
     console.log('Initializing Server...')
-    this.myIp = this.getMyIp()
+    const ip = await publicIp.v4()
+    this.myIp = ip
+    console.log(`Server ip address is set to ...: ${this.myIp}`)
     this.cm = new ConnectionManager(this.myIp, this.myPort)
   }
 
@@ -49,9 +54,4 @@ class ServerCore {
     return this.status
   }
 
-  private getMyIp() {
-    const s = net.createConnection({ host: '8.8.8.8', port: 80 })
-    const { address } = s.address() as net.AddressInfo
-    return address
-  }
 }

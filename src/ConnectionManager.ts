@@ -74,6 +74,7 @@ export class ConnectionManager {
 
   public async connectionClose() {
     this.socket.close()
+    console.log('====')
     clearTimeout(this.pingTimerId)
     const msg = this.mm.build(MessageType.remove, this.port)
     await this.sendMsg({ host: this.connectedHost, port: this.connectedPort },msg)
@@ -128,7 +129,7 @@ export class ConnectionManager {
   }
 
   private addPeer(peer: IPeer) {
-    console.log(`Adding peer: ${peer}`)
+    console.log(`Adding peer: ${peer.host}:${peer.port}`)
     this.coreNode.add(peer)
   }
 
@@ -186,7 +187,8 @@ export class ConnectionManager {
       })
     })
 
-    this.socket.listen(this.host, this.port, () => {
+    // this.socket.listen(this.port, this.host, () => {
+    this.socket.listen(this.port, () => {
       console.log('Waiting for connection')
     })
   }

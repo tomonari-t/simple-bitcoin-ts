@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "develop:server": "ts-node src/server.ts",
-    "develop:client": "ts-node src/client.ts"
+    "develop:core1": "ts-node src/SampleServer1.ts",
+    "develop:core2": "ts-node src/SampleServer2.ts"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.117",
@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "lodash": "^4.17.11",
+    "public-ip": "^2.4.0",
     "semver": "^5.6.0"
   }
 }
