@@ -3,7 +3,7 @@ import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
 import CoreNodeList from './CoreNodeList'
 
-const PING_INTERVAL = 180000
+const PING_INTERVAL = 10000
 
 export interface IPeer {
   host: string
@@ -36,8 +36,9 @@ export class ConnectionManager {
   }
 
   private connnectToP2PNW(host: string, port: number) {
+    // FIX: ここでcloseしたらだめやん。繋げないと
     return new Promise((resolve, reject) => {
-      const client = net.createConnection({ host, port }, () => {
+      const client = net.createConnection(port, host, () => {
         const msg = this.mm.build(MessageType.add, this.port)
         client.write(msg)
         client.end()
@@ -188,6 +189,7 @@ export class ConnectionManager {
       })
     })
 
+    // FIX: 自身のIPアドレスが少しおかしいんかな？
     // this.socket.listen(this.port, this.host, () => {
     this.socket.listen(this.port, () => {
       console.log('Waiting for connection')
