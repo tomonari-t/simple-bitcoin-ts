@@ -5,13 +5,13 @@ const PROTOCOL_NAME = 'simpleBitcoinProtocol'
 const VERSION = '0.1.0'
 
 export enum MessageType {
-  add,
-  remove,
-  coreList,
-  requestCoreList,
-  ping,
-  addAsEdge,
-  removeEdge
+  add = 'add',
+  remove = 'remove',
+  coreList = 'coreList',
+  requestCoreList = 'requestCoreList',
+  ping = 'ping',
+  addAsEdge = 'addAsEdge',
+  removeEdge = 'removeEdge',
 }
 
 export enum ErrorType {

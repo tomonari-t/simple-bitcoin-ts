@@ -23,7 +23,6 @@ export default class ServerCore {
   }
 
   public async init() {
-    console.log(ip.address())
     console.log('Initializing Server...')
     const publicip = await publicIp.v4()
     this.myPublicIp = publicip

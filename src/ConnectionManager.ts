@@ -2,6 +2,7 @@ import { every, remove, xorWith, isEqual } from 'lodash'
 import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
 import CoreNodeList from './CoreNodeList'
+import * as util from 'util'
 
 const PING_INTERVAL = 10000
 
@@ -36,7 +37,6 @@ export class ConnectionManager {
   }
 
   private connnectToP2PNW(host: string, port: number) {
-    // FIX: ここでcloseしたらだめやん。繋げないと
     return new Promise((resolve, reject) => {
       const client = net.createConnection(port, host, () => {
         const msg = this.mm.build(MessageType.add, this.port)
@@ -47,7 +47,7 @@ export class ConnectionManager {
     })
   }
 
-  public sendMsg({ host, port }: IPeer, msg): Promise<void>{
+  public sendMsg = ({ host, port }: IPeer, msg): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
         const client = net.createConnection({ host, port }, () => {
@@ -63,7 +63,7 @@ export class ConnectionManager {
     })
   }
 
-  public async sendMsgToAllPeer(msg: string) {
+  public sendMsgToAllPeer = async (msg: string) => {
     console.log('sndMsgToAllPeer was called')
     for (let node of this.coreNode.getList()) {
       if (node.host !== this.host && node.port !== this.port) {
@@ -78,11 +78,16 @@ export class ConnectionManager {
     console.log('=============================================')
     clearTimeout(this.pingTimerId)
     const msg = this.mm.build(MessageType.remove, this.port)
-    await this.sendMsg({ host: this.connectedHost, port: this.connectedPort },msg)
+    await this.sendMsg({ host: this.connectedHost, port: this.connectedPort }, msg)
   }
 
   private async handleMsg(address: string, port: number, data: Buffer) {
-    const { result, reason, msgType, myPort, payload } = this.mm.parse(data.toString())
+    const parsedMsg = this.mm.parse(data.toString())
+    const { result, reason, msgType, payload } = parsedMsg
+    const nodeListneningPort =  parsedMsg.myPort
+
+    console.log(`Handled messae from ${address}:${port} ${msgType} ${util.inspect(payload)}`)
+    console.log(`From port is ${nodeListneningPort}`)
 
     if (result === 'error') {
       if (reason === ErrorType.protocolUnmatch) {
@@ -93,11 +98,10 @@ export class ConnectionManager {
         return
       }
     } else if (result === 'ok' && reason === SuccessType.withoutPayload) {
-      console.log(msgType)
       if (msgType === MessageType.add) {
         console.log('Add node request received!')
-        this.addPeer({ host: address, port })
-        if (address === this.host && port === this.port) {
+        this.addPeer({ host: address, port: nodeListneningPort })
+        if (address === this.host && nodeListneningPort === this.port) {
           return
         } else {
           const message = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
@@ -105,7 +109,7 @@ export class ConnectionManager {
         }
       } else if (msgType === MessageType.remove) {
         console.log(`Remove request was receiver from ${address}:${port}`)
-        this.removePeer({ host: address, port })
+        this.removePeer({ host: address, port: nodeListneningPort })
         const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
         await this.sendMsgToAllPeer(msg)
       } else if (msgType === MessageType.ping) {
@@ -139,11 +143,12 @@ export class ConnectionManager {
     this.coreNode.remove(peer)
   }
 
-  private async checkPeersConnection() {
+  private checkPeersConnection = async () => {
     console.log('Check peers connection was called')
     let isChanged = false
     const deadConnectNodes = []
     for (let node of this.coreNode.getList()) {
+      console.log(await this.isAlive(node))
       if (!await this.isAlive(node)) {
         deadConnectNodes.push(node)
       }
@@ -151,12 +156,12 @@ export class ConnectionManager {
 
     if (deadConnectNodes.length !== 0) {
       isChanged = true
-      console.log(`Removeing: ${deadConnectNodes}`)
+      console.log(`Removeing: ${util.inspect(deadConnectNodes)}`)
       const newList = xorWith(this.coreNode.getList(), deadConnectNodes, isEqual)
       this.coreNode.overwrite(newList)
     }
 
-    console.log(`Current node list: ${this.coreNode.getList()}`)
+    console.log(`Current node list: ${util.inspect(this.coreNode.getList())}`)
 
     if (isChanged) {
       const msg = this.mm.build(MessageType.coreList, this.port, this.coreNode.getList())
@@ -180,8 +185,9 @@ export class ConnectionManager {
     this.socket = net.createServer((connection) => {
 
       connection.on('data', (data) => {
-        const { address, port } = (connection.address() as net.AddressInfo)
-        this.handleMsg(address, port, data)
+        const fromAddress = connection.remoteAddress
+        const fromPort = connection.remotePort
+        this.handleMsg(fromAddress, fromPort, data)
       })
 
       connection.on('end', () => {
@@ -189,9 +195,7 @@ export class ConnectionManager {
       })
     })
 
-    // FIX: 自身のIPアドレスが少しおかしいんかな？
-    // this.socket.listen(this.port, this.host, () => {
-    this.socket.listen(this.port, () => {
+    this.socket.listen(this.port, this.host, () => {
       console.log('Waiting for connection')
     })
   }
