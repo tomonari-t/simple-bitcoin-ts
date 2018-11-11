@@ -2,7 +2,7 @@ import ServerCore from './ServerCore'
 
 let myP2PServer: ServerCore
 
-const shutdown = () => {
+const shutdown = async () => {
   myP2PServer.shutdown()
   process.exit()
 }
@@ -13,7 +13,9 @@ const main = async () => {
   myP2PServer.start()
   myP2PServer.joinNetwork()
 
-  process.on('SIGINT', shutdown)
+  process.on('SIGINT', async() => {
+    await shutdown()
+  })
 }
 
 main()

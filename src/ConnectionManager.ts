@@ -49,26 +49,27 @@ export class ConnectionManager {
 
   public sendMsg = ({ host, port }: IPeer, msg): Promise<void> => {
     return new Promise((resolve, reject) => {
-      try {
         const client = net.createConnection({ host, port }, () => {
           client.write(msg)
           client.end()
           resolve()
         })
-      } catch (err) {
-        console.log(`Connection refused to ${host}:${port}`)
-        this.removePeer({ host, port })
-        reject()
-      }
+        client.on('error', () => {
+          console.log(`Connection refused to ${host}:${port}`)
+          this.removePeer({ host, port })
+          reject()
+        })
     })
   }
 
   public sendMsgToAllPeer = async (msg: string) => {
     console.log('sndMsgToAllPeer was called')
     for (let node of this.coreNode.getList()) {
-      if (node.host !== this.host && node.port !== this.port) {
+      if (node.host !== this.host || node.port !== this.port) {
         console.log(`Send to ${node.host}:${node.port}`)
-        await this.sendMsg({ host: node.host, port: node.port }, msg)
+        await this.sendMsg({ host: node.host, port: node.port }, msg).catch(() => {
+
+        })
       }
     }
   }
@@ -124,8 +125,8 @@ export class ConnectionManager {
     } else if (result === 'ok' && reason === SuccessType.withPayload) {
       if (msgType === MessageType.coreList) {
         console.log('Refresh core node list')
-        console.log(`latest core list ${payload}`)
-        this.coreNode = payload
+        console.log(`latest core list ${util.inspect(payload)}`)
+        this.coreNode.overwrite(payload)
       } else {
         console.log('Received unknown msgtype')
       }
@@ -148,7 +149,6 @@ export class ConnectionManager {
     let isChanged = false
     const deadConnectNodes = []
     for (let node of this.coreNode.getList()) {
-      console.log(await this.isAlive(node))
       if (!await this.isAlive(node)) {
         deadConnectNodes.push(node)
       }
@@ -168,7 +168,9 @@ export class ConnectionManager {
       await this.sendMsgToAllPeer(msg)
     }
 
-    this.pingTimerId =setTimeout(this.checkPeersConnection, PING_INTERVAL)
+    this.pingTimerId = setTimeout(() => {
+      this.checkPeersConnection()
+    }, PING_INTERVAL)
   }
 
   private async isAlive({ host, port }: IPeer) {
