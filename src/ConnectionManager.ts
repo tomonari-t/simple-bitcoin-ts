@@ -3,6 +3,7 @@ import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
 import CoreNodeList from './CoreNodeList'
 import * as util from 'util'
+import EdgeNodeList from './EdgeNodeList';
 
 const PING_INTERVAL = 10000
 
@@ -18,10 +19,12 @@ export class ConnectionManager {
   private connectedHost: string
   private connectedPort: number
   private pingTimerId: NodeJS.Timeout
+  private edgeNodeList: EdgeNodeList
   constructor(private host: string, private port: number) {
     console.log('Initializing Connection Manager')
     this.mm = new MessageManager()
     this.coreNode = new CoreNodeList()
+    this.edgeNodeList = new EdgeNodeList()
     this.addPeer({ host, port })
   }
 
@@ -119,6 +122,12 @@ export class ConnectionManager {
         console.log('List for Core nodes was requested')
         const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
         await this.sendMsgToAllPeer(msg)
+      } else if (msgType === MessageType.addAsEdge) {
+        this.addEdgeNode({ host:address, port: nodeListneningPort })
+        const msg = this.mm.build(MessageType.coreList, this.port, [...this.coreNode.getList()])
+        await this.sendMsg({ host: address, port: nodeListneningPort }, msg)
+      } else if (msgType === MessageType.removeEdge) {
+        this.removeEdgeNode({ host:address, port: nodeListneningPort })
       } else {
         console.log('Received unknown msgtype')
       }
@@ -142,6 +151,14 @@ export class ConnectionManager {
 
   private removePeer(peer: IPeer) {
     this.coreNode.remove(peer)
+  }
+
+  private addEdgeNode(edge: IPeer) {
+    this.edgeNodeList.add(edge)
+  }
+
+  private removeEdgeNode(edge: IPeer) {
+    this.edgeNodeList.add(edge)
   }
 
   private checkPeersConnection = async () => {
