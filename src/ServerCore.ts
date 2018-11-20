@@ -18,11 +18,10 @@ export default class ServerCore {
     private myPort: number,
     private coreNodeHost?: string,
     private coreNodePort?: number,
-  ) {
-    this.status = ServerStatus.init
-  }
+  ) {}
 
   public async init() {
+    this.status = ServerStatus.init
     console.log('Initializing Server...')
     const publicip = await publicIp.v4()
     this.myPublicIp = publicip

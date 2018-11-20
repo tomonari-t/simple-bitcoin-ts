@@ -1,9 +1,9 @@
-import { every, remove, xorWith, isEqual } from 'lodash'
+import { xorWith, isEqual } from 'lodash'
 import * as net from 'net'
 import MessageManager, { ErrorType, MessageType, SuccessType } from './MessageManager'
 import CoreNodeList from './CoreNodeList'
 import * as util from 'util'
-import EdgeNodeList from './EdgeNodeList';
+import EdgeNodeList from './EdgeNodeList'
 
 const PING_INTERVAL = 10000
 

@@ -1,4 +1,4 @@
-import { IPeer } from "./ConnectionManager";
+import { IPeer } from "./ConnectionManager"
 import * as util from 'util'
 import { isEqual } from 'lodash'
 

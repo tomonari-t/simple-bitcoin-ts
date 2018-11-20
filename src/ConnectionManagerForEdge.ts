@@ -4,7 +4,7 @@ import { IPeer } from './ConnectionManager'
 import * as net from 'net'
 import * as util from 'util'
 
-const PING_INTERVAL = 100
+const PING_INTERVAL = 10000
 export default class ConnectionManagerForEdge {
   coreNodeList: CoreNodeList
   mm: MessageManager
