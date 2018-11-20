@@ -12,6 +12,11 @@ export enum MessageType {
   ping = 'ping',
   addAsEdge = 'addAsEdge',
   removeEdge = 'removeEdge',
+  newTransaction = 'newTransaction',
+  newBlock = 'newBlock',
+  requestFullChain = 'requestFullChain',
+  responseFullChain = 'responseFullChain',
+  enhanced = 'enhanced',
 }
 
 export enum ErrorType {
@@ -77,7 +82,13 @@ export default class MessageManager {
         msgType: undefined,
         payload: undefined,
       }
-    } else if (msgType === MessageType.coreList) {
+    } else if (
+      msgType === MessageType.coreList ||
+      msgType === MessageType.newTransaction ||
+      msgType === MessageType.newBlock ||
+      msgType === MessageType.responseFullChain ||
+      msgType === MessageType.enhanced
+    ) {
       return {
         result: 'ok',
         reason: SuccessType.withPayload,
