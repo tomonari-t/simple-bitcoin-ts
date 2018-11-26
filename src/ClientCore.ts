@@ -1,6 +1,7 @@
 import * as publicIp from 'public-ip'
 import * as ip from 'ip'
 import ConnectionManagerForEdge from './ConnectionManagerForEdge'
+import { MessageType } from './MessageManager';
 
 enum ClientCoreStatus {
   init,
@@ -44,5 +45,10 @@ export default class ClientCore {
 
   public getCurrentStatus() {
     return this.status
+  }
+
+  public async sendMsgToMyCoreNode(msgType: MessageType, msg: any) {
+    const msgTxt = this.cm.getMsgText(msgType, msg)
+    await this.cm.sendMsg({ host: this.coreHost, port: this.corePort }, msgTxt)
   }
 }

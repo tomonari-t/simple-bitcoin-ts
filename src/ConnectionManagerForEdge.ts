@@ -67,6 +67,10 @@ export default class ConnectionManagerForEdge {
     clearTimeout(this.timeoutId)
   }
 
+  public getMsgText(msgType: MessageType, paylod: any) {
+    return this.mm.build(msgType, this.myPort, paylod)
+  }
+
   private connectToP2PNW = (host: string, port: number) => {
     return new Promise((resolve, reject) => {
       const connection = net.createConnection(port, host, () => {

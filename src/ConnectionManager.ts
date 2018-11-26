@@ -20,7 +20,11 @@ export class ConnectionManager {
   private connectedPort: number
   private pingTimerId: NodeJS.Timeout
   private edgeNodeList: EdgeNodeList
-  constructor(private host: string, private port: number) {
+  constructor(
+    private host: string,
+    private port: number,
+    private callback: (message: any, peer: IPeer) => void
+  ) {
     console.log('Initializing Connection Manager')
     this.mm = new MessageManager()
     this.coreNode = new CoreNodeList()
@@ -129,15 +133,17 @@ export class ConnectionManager {
       } else if (msgType === MessageType.removeEdge) {
         this.removeEdgeNode({ host:address, port: nodeListneningPort })
       } else {
-        console.log('Received unknown msgtype')
+        this.callback(parsedMsg, { host: address, port: nodeListneningPort })
       }
     } else if (result === 'ok' && reason === SuccessType.withPayload) {
       if (msgType === MessageType.coreList) {
+        // TODO: 受信したリストをただ上書きは本来ダメ
+        // 信頼できるノードの鍵とかをセットしておく必要あるかも
         console.log('Refresh core node list')
         console.log(`latest core list ${util.inspect(payload)}`)
         this.coreNode.overwrite(payload)
       } else {
-        console.log('Received unknown msgtype')
+        this.callback(parsedMsg, { host: address, port: nodeListneningPort })
       }
     } else {
       console.log(`Unexpected result: ${result}, reason: ${reason}`)

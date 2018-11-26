@@ -1,6 +1,13 @@
 import ClientCore from './ClientCore'
+import { MessageType } from './MessageManager';
 
 let myP2PClient: ClientCore
+
+const wait = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
 
 const shutdown = async () => {
   await myP2PClient.shutdown()
@@ -15,10 +22,16 @@ const main = async () => {
   )
   await myP2PClient.init()
   await myP2PClient.start()
-
   process.on('SIGINT', async() => {
     await shutdown()
   })
+
+  await wait(2000)
+
+  const msg = {
+    message: 'test',
+  }
+  await myP2PClient.sendMsgToMyCoreNode(MessageType.enhanced, msg)
 }
 
 main()

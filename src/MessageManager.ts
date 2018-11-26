@@ -37,7 +37,7 @@ interface IMessage {
   payload: any | undefined
 }
 
-interface IParsedMessage {
+export interface IParsedMessage {
   result: 'ok' | 'error'
   reason: ErrorType | SuccessType
   msgType: MessageType
